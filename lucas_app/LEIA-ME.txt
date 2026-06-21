@@ -1,0 +1,63 @@
+COMO FAZER O DEPLOY — PASSO A PASSO
+=====================================
+
+ESTRUTURA DO PACOTE (já organizada corretamente)
+-------------------------------------------------
+lucas_app/
+├── Home.py                       ← fica na RAIZ
+├── utils.py                      ← fica na RAIZ
+├── requirements.txt              ← fica na RAIZ (resolve o erro do plotly)
+├── telco.csv                     ← VOCÊ precisa adicionar este arquivo aqui
+└── pages/
+    ├── 1_📊_Tabela_de_Dados.py
+    ├── 2_📈_Gráficos.py
+    ├── 3_📄_Relatório.py
+    └── 4_📧_Enviar_por_Email.py
+
+O QUE EU CORRIGI
+-----------------
+1. Criei o requirements.txt (estava faltando — causa do erro original).
+2. Coloquei as 4 páginas dentro da pasta "pages/", que é o nome exato que o
+   Streamlit exige para mostrar o menu de navegação lateral. Se elas ficarem
+   soltas na raiz junto com o Home.py, o menu não aparece.
+3. O código interno (utils.py, Home.py, páginas) não tinha bugs — mantive a
+   lógica original, só reorganizei a localização dos arquivos.
+
+O QUE FALTA VOCÊ FAZER
+------------------------
+1. ADICIONAR O telco.csv dentro da pasta lucas_app/ (na raiz, do lado do
+   Home.py). Sem ele, o app quebra na primeira tela porque o utils.py
+   procura esse arquivo lá.
+
+2. SUBSTITUIR TUDO no seu repositório do GitHub:
+   a) Entre no seu repositório em github.com
+   b) Apague os arquivos antigos que estão soltos na raiz (os .py e, se
+      existir, o requirements.txt antigo) — pode usar o ícone de lixeira
+      ao lado de cada arquivo, na visualização do repositório.
+   c) Clique em "Add file" → "Upload files"
+   d) Arraste a pasta "lucas_app" inteira (com a subpasta pages/ dentro)
+      direto do seu computador para a área de upload do GitHub. O site
+      preserva a estrutura de pastas automaticamente.
+   e) Role para baixo e clique em "Commit changes"
+
+3. CONFIGURAR O E-MAIL (página 4) — não suba a senha pro GitHub:
+   No Streamlit Cloud, vá em "Manage app" → "Settings" → "Secrets" e cole:
+
+   [smtp]
+   host = "smtp.gmail.com"
+   port = 587
+   remetente = "seuemail@gmail.com"
+   senha = "sua_senha_de_app_do_gmail"
+
+   (Senha de App = gerada em myaccount.google.com/apppasswords, não é a
+   senha normal da sua conta Google.)
+
+4. NO PAINEL DE DEPLOY do Streamlit Cloud, confirme que o "Main file path"
+   está apontando para Home.py — que é o que você já tinha selecionado,
+   está certo.
+
+5. Clique em "Reboot app" (ou faça um novo deploy) depois de subir tudo.
+
+Pronto — com isso o ModuleNotFoundError do plotly deixa de acontecer, o
+menu lateral com as 4 páginas aparece, e o envio de e-mail funciona desde
+que os secrets estejam configurados.
