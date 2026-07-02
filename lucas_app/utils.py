@@ -17,6 +17,13 @@ import pandas as pd
 import streamlit as st
 import plotly.express as px
 import plotly.io as pio
+import matplotlib
+matplotlib.use("Agg")  # backend sem interface gráfica, necessário no servidor
+import matplotlib.pyplot as plt
+import matplotlib.ticker as mticker
+import seaborn as sns
+
+sns.set_theme(style="whitegrid")
 
 NOME_EMPRESA = "Lucas Coltri Analytics"
 ICONE_EMPRESA = "📈"
@@ -234,7 +241,7 @@ def fig_cltv_scatter(df):
     return fig
 
 
-# Catálogo usado na página de e-mail para o usuário escolher qual gráfico enviar
+# Catálogo usado na página de Gráficos (interativos, Plotly)
 GRAFICOS_DISPONIVEIS = {
     "Proporção Geral de Churn": fig_pizza_churn,
     "Categorias de Motivo de Cancelamento": fig_categoria_churn,
@@ -244,9 +251,108 @@ GRAFICOS_DISPONIVEIS = {
 }
 
 
+# ---------------------------------------------------------------------------
+# 3b. GRÁFICOS ESTÁTICOS (matplotlib/seaborn) — usados na página de E-mail
+#     Substituem o Plotly + Kaleido nessa página porque o Streamlit Cloud não
+#     tem Chrome instalado, e o Kaleido depende dele para exportar PNG.
+#     matplotlib/seaborn geram o PNG nativamente, sem precisar de navegador.
+# ---------------------------------------------------------------------------
+CORES_MPL = {"sim": "#EF553B", "nao": "#00CC96"}
+
+
+def _fig_base(figsize=(9, 5.5)):
+    fig, ax = plt.subplots(figsize=figsize)
+    return fig, ax
+
+
+def fig_mpl_pizza_churn(df):
+    contagem = df["Churn Label"].value_counts()
+    cores = [CORES_MPL["nao"] if s == "No" else CORES_MPL["sim"] for s in contagem.index]
+    fig, ax = _fig_base()
+    ax.pie(
+        contagem.values,
+        labels=contagem.index,
+        autopct=lambda p: f"{p:.1f}%\n({int(p/100*contagem.sum())})",
+        colors=cores,
+        startangle=90,
+        wedgeprops={"width": 0.55},
+    )
+    ax.set_title("Clientes que cancelaram vs. permaneceram")
+    fig.tight_layout()
+    return fig
+
+
+def fig_mpl_categoria_churn(df):
+    cat = df[df["Churn Label"] == "Yes"]["Churn Category"].value_counts().reset_index()
+    cat.columns = ["Categoria", "Quantidade"]
+    fig, ax = _fig_base()
+    sns.barplot(data=cat, x="Quantidade", y="Categoria", hue="Categoria",
+                palette="OrRd", legend=False, ax=ax)
+    ax.set_title("Categorias de Motivo de Cancelamento")
+    ax.set_xlabel("Nº de Cancelamentos")
+    ax.set_ylabel("")
+    fig.tight_layout()
+    return fig
+
+
+def fig_mpl_motivos_especificos(df):
+    motivo = df[df["Churn Label"] == "Yes"]["Churn Reason"].value_counts().head(10).reset_index()
+    motivo.columns = ["Motivo", "Quantidade"]
+    fig, ax = _fig_base()
+    sns.barplot(data=motivo, x="Quantidade", y="Motivo", hue="Motivo",
+                palette="OrRd", legend=False, ax=ax)
+    ax.set_title("Top 10 Razões Específicas de Cancelamento")
+    ax.set_xlabel("Nº de Cancelamentos")
+    ax.set_ylabel("")
+    fig.tight_layout()
+    return fig
+
+
+def fig_mpl_contrato(df):
+    fig, ax = _fig_base()
+    sns.countplot(
+        data=df, x="Contract", hue="Churn Label",
+        palette={"Yes": CORES_MPL["sim"], "No": CORES_MPL["nao"]}, ax=ax,
+    )
+    ax.set_title("Churn por Tipo de Contrato")
+    ax.set_xlabel("Tipo de Contrato")
+    ax.set_ylabel("Nº de Clientes")
+    ax.legend(title="Churn")
+    fig.tight_layout()
+    return fig
+
+
+def fig_mpl_satisfacao(df):
+    fig, ax = _fig_base()
+    sns.countplot(
+        data=df, x="Satisfaction Score", hue="Churn Label",
+        palette={"Yes": CORES_MPL["sim"], "No": CORES_MPL["nao"]}, ax=ax,
+    )
+    ax.set_title("Churn por Nível de Satisfação (1=Muito Insatisfeito, 5=Muito Satisfeito)")
+    ax.set_xlabel("Nota de Satisfação")
+    ax.set_ylabel("Nº de Clientes")
+    ax.legend(title="Churn")
+    fig.tight_layout()
+    return fig
+
+
+# Catálogo usado na página de e-mail (gráficos estáticos matplotlib/seaborn)
+GRAFICOS_DISPONIVEIS_ESTATICOS = {
+    "Proporção Geral de Churn": fig_mpl_pizza_churn,
+    "Categorias de Motivo de Cancelamento": fig_mpl_categoria_churn,
+    "Top 10 Razões Específicas de Cancelamento": fig_mpl_motivos_especificos,
+    "Churn por Tipo de Contrato": fig_mpl_contrato,
+    "Churn por Nível de Satisfação": fig_mpl_satisfacao,
+}
+
+
 def gerar_png_bytes(fig) -> bytes:
-    """Converte uma figura Plotly em PNG estático (bytes) para anexar no e-mail."""
-    return pio.to_image(fig, format="png", width=900, height=550, scale=2)
+    """Converte uma figura matplotlib em PNG estático (bytes) para anexar no e-mail."""
+    buf = io.BytesIO()
+    fig.savefig(buf, format="png", dpi=200, bbox_inches="tight")
+    plt.close(fig)  # libera memória — importante em apps que geram vários gráficos
+    buf.seek(0)
+    return buf.getvalue()
 
 
 # ---------------------------------------------------------------------------
