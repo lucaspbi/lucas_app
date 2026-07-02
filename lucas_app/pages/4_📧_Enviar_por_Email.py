@@ -1,7 +1,7 @@
 import streamlit as st
 from utils import (
     NOME_EMPRESA, load_data, render_sidebar_usuario, saudacao,
-    GRAFICOS_DISPONIVEIS, gerar_png_bytes,
+    GRAFICOS_DISPONIVEIS_ESTATICOS, gerar_png_bytes,
     obter_config_smtp_padrao, enviar_email,
 )
 
@@ -28,18 +28,18 @@ smtp_host, smtp_port, remetente, senha = obter_config_smtp_padrao()
 
 if remetente is None:
     st.error(
-        "⚠️ Nenhuma credencial de e-mail configurada. Configure os secrets "
-        "(host, porta, e-mail remetente e senha de App Password) no painel do "
-        "Streamlit Cloud, em Settings → Secrets, antes de usar esta página."
+        "⚠️ Nenhuma credencial de e-mail configurada. Crie o arquivo "
+        "`.streamlit/secrets.toml` na raiz do projeto com host, porta, "
+        "e-mail remetente e senha (App Password) antes de usar esta página."
     )
     st.stop()
 
 # ── 1. Escolha do gráfico ───────────────────────────────────────────────────
 grafico_escolhido = st.selectbox(
-    "1️⃣ Escolha o gráfico que deseja enviar", list(GRAFICOS_DISPONIVEIS.keys())
+    "1️⃣ Escolha o gráfico que deseja enviar", list(GRAFICOS_DISPONIVEIS_ESTATICOS.keys())
 )
-fig_preview = GRAFICOS_DISPONIVEIS[grafico_escolhido](df)
-st.plotly_chart(fig_preview, width='stretch')
+fig_preview = GRAFICOS_DISPONIVEIS_ESTATICOS[grafico_escolhido](df)
+st.pyplot(fig_preview)
 
 st.markdown("---")
 
